@@ -1,0 +1,125 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Historial de Ejecuciones</title>
+  <!-- Bootstrap CSS y FontAwesome -->
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+  <link rel="stylesheet" href="{% static 'scripts/style.css' %}">
+</head>
+<body>
+  <div class="container">
+    <h1 class="mt-4 mb-4 text-center">Historial de Ejecuciones</h1>
+    
+    <!-- Formulario de Filtro -->
+    <form method="get" class="form-inline mb-3">
+      <div class="form-group mr-2">
+        <label for="id_script_name" class="mr-2">Script:</label>
+        {{ filter.form.script_name }}
+      </div>
+      <div class="form-group mr-2">
+        <label for="id_execution_date_after" class="mr-2">Desde:</label>
+        {{ filter.form.execution_date_after }}
+      </div>
+      <div class="form-group mr-2">
+        <label for="id_execution_date_before" class="mr-2">Hasta:</label>
+        {{ filter.form.execution_date_before }}
+      </div>
+      <button type="submit" class="btn btn-primary">Filtrar</button>
+    </form>
+    
+    <!-- Tabla de Registros -->
+    <table class="table table-bordered">
+      <thead class="thead-dark">
+        <tr>
+          <th>Script</th>
+          <th>Fecha de Ejecución</th>
+          <th>Código</th>
+          <th>Salida</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for registro in page_obj %}
+        <tr>
+          <td>{{ registro.script_name }}</td>
+          <td>{{ registro.execution_date }}</td>
+          <td>{{ registro.return_code }}</td>
+          <td>{{ registro.output }}</td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="4" class="text-center">No hay registros.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <!-- Controles de Paginación -->
+    <nav aria-label="Page navigation">
+      <ul class="pagination justify-content-center">
+        {% if page_obj.has_previous %}
+          <li class="page-item">
+            <a class="page-link" href="?{{ request.GET.urlencode }}&page={{ page_obj.previous_page_number }}" aria-label="Previous">
+              <span aria-hidden="true">&laquo;</span>
+            </a>
+          </li>
+        {% else %}
+          <li class="page-item disabled"><span class="page-link">&laquo;</span></li>
+        {% endif %}
+
+        {% for num in page_obj.paginator.page_range %}
+          {% if page_obj.number == num %}
+            <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+          {% else %}
+            <li class="page-item"><a class="page-link" href="?{{ request.GET.urlencode }}&page={{ num }}">{{ num }}</a></li>
+          {% endif %}
+        {% endfor %}
+
+        {% if page_obj.has_next %}
+          <li class="page-item">
+            <a class="page-link" href="?{{ request.GET.urlencode }}&page={{ page_obj.next_page_number }}" aria-label="Next">
+              <span aria-hidden="true">&raquo;</span>
+            </a>
+          </li>
+        {% else %}
+          <li class="page-item disabled"><span class="page-link">&raquo;</span></li>
+        {% endif %}
+      </ul>
+    </nav>
+
+    <!-- Formulario para Borrar Registros -->
+    <h2>Borrar Registros</h2>
+    <form method="post" action="{% url 'borrar_registros' %}" class="form-inline">
+      {% csrf_token %}
+      <div class="form-group mr-2">
+        <label for="date_limit" class="mr-2">Borrar registros anteriores a (YYYY-MM-DD):</label>
+        <input type="text" name="date_limit" id="date_limit" class="form-control">
+      </div>
+      <button type="submit" class="btn btn-danger">Borrar</button>
+    </form>
+
+    <!-- Mensajes (usando Django messages) -->
+    {% if messages %}
+      <div class="mt-3">
+        {% for message in messages %}
+          <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    <!-- Botón para volver a la página principal -->
+    <div class="text-right mt-3">
+      <a href="{% url 'lista_scripts' %}" class="btn btn-secondary">
+        <i class="fas fa-arrow-left"></i> Volver
+      </a>
+    </div>
+  </div>
+  <!-- jQuery y Bootstrap JS -->
+  <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
+  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+</body>
+</html>

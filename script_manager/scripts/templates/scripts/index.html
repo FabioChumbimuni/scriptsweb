@@ -1,0 +1,115 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gestión de Scripts</title>
+  <!-- Bootstrap CSS -->
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+  <!-- FontAwesome para íconos -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+  <link rel="stylesheet" href="{% static 'scripts/style.css' %}">
+</head>
+<body>
+  <div class="container">
+    <h1 class="mt-4 mb-4 text-center">Gestión de Scripts</h1>
+    
+    <!-- Listado de Scripts -->
+    <div class="row">
+      <div class="col-md-12">
+        <h2>Scripts</h2>
+        <table class="table table-hover">
+          <thead class="thead-dark">
+            <tr>
+              <th>Nombre</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for script in scripts %}
+            <tr>
+              <td>{{ script.nombre }}</td>
+              <td>
+                <button class="btn btn-success" onclick="ejecutarScript('{{ script.nombre }}')">
+                  <i class="fas fa-play"></i> Ejecutar
+                </button>
+              </td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="2" class="text-center">No se encontraron scripts.</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        <!-- Enlace para ver el historial persistente -->
+        <div class="text-right mt-3">
+          <a href="{% url 'historial_ejecuciones' %}" class="btn btn-info">
+            <i class="fas fa-history"></i> Ver Historial de Ejecuciones
+          </a>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Monitoreo de Ejecución (efímero) en la parte inferior -->
+    <div class="row mt-4">
+      <div class="col-md-12">
+        <h2>Monitoreo</h2>
+        <div id="execution-log" class="border rounded p-3" style="height: 300px; overflow-y: auto;">
+          <p class="text-muted">Esperando ejecución...</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- jQuery, Popper.js y Bootstrap JS -->
+  <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
+  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+  <script src="{% static 'scripts/script.js' %}"></script>
+  <script>
+    function ejecutarScript(scriptName) {
+      let log = document.getElementById('execution-log');
+      // Mostrar mensaje de ejecución
+      let executingMessage = document.createElement('p');
+      executingMessage.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Ejecutando script: ' + scriptName;
+      executingMessage.setAttribute("id", "executingMessage");
+      log.appendChild(executingMessage);
+      log.scrollTop = log.scrollHeight;
+
+      fetch(`/ejecutar/${scriptName}/`, {
+        method: "POST",
+        headers: {
+          "X-CSRFToken": "{{ csrf_token }}",
+          "Content-Type": "application/json"
+        }
+      })
+      .then(response => response.json())
+      .then(data => {
+        // Eliminar el mensaje "Ejecutando"
+        let executingElement = document.getElementById("executingMessage");
+        if (executingElement) {
+          executingElement.remove();
+        }
+        // Mostrar la respuesta en el log
+        let outputMessage = document.createElement('p');
+        outputMessage.innerHTML = '<i class="fas fa-check-circle"></i> ' + data.mensaje;
+        log.appendChild(outputMessage);
+        log.scrollTop = log.scrollHeight;
+      })
+      .catch(error => {
+        let executingElement = document.getElementById("executingMessage");
+        if (executingElement) {
+          executingElement.remove();
+        }
+        let errorMessage = document.createElement('p');
+        errorMessage.innerHTML = '<i class="fas fa-times-circle"></i> Error en la ejecución.';
+        log.appendChild(errorMessage);
+        log.scrollTop = log.scrollHeight;
+        console.error("Error:", error);
+      });
+    }
+  </script>
+</body>
+</html>
