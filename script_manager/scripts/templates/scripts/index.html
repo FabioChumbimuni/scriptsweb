@@ -7,18 +7,16 @@
   <title>Gestión de Scripts</title>
   <!-- Bootstrap CSS -->
   <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
-  <!-- FontAwesome para íconos -->
+  <!-- FontAwesome -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
   <link rel="stylesheet" href="{% static 'scripts/style.css' %}">
 </head>
 <body>
   <div class="container">
     <h1 class="mt-4 mb-4 text-center">Gestión de Scripts</h1>
-    
-    <!-- Listado de Scripts -->
     <div class="row">
       <div class="col-md-12">
-        <h2>Scripts</h2>
+        <h2>Scripts Disponibles</h2>
         <table class="table table-hover">
           <thead class="thead-dark">
             <tr>
@@ -31,8 +29,9 @@
             <tr>
               <td>{{ script.nombre }}</td>
               <td>
+                <!-- Botón para ejecución inmediata -->
                 <button class="btn btn-success" onclick="ejecutarScript('{{ script.nombre }}')">
-                  <i class="fas fa-play"></i> Ejecutar
+                  <i class="fas fa-play"></i> Ejecutar Ahora
                 </button>
               </td>
             </tr>
@@ -43,16 +42,18 @@
             {% endfor %}
           </tbody>
         </table>
-        <!-- Enlace para ver el historial persistente -->
+        <!-- Enlaces para ver Historial y Programación -->
         <div class="text-right mt-3">
-          <a href="{% url 'historial_ejecuciones' %}" class="btn btn-info">
-            <i class="fas fa-history"></i> Ver Historial de Ejecuciones
+          <a href="{% url 'historial_ejecuciones' %}" class="btn btn-secondary">
+            <i class="fas fa-history"></i> Ver Historial
+          </a>
+          <a href="{% url 'ver_programacion' %}" class="btn btn-warning">
+            <i class="fas fa-calendar-alt"></i> Ver Programación
           </a>
         </div>
       </div>
     </div>
-    
-    <!-- Monitoreo de Ejecución (efímero) en la parte inferior -->
+    <!-- Sección de monitoreo efímero -->
     <div class="row mt-4">
       <div class="col-md-12">
         <h2>Monitoreo</h2>
@@ -62,16 +63,14 @@
       </div>
     </div>
   </div>
-
-  <!-- jQuery, Popper.js y Bootstrap JS -->
+  
+  <!-- jQuery y Bootstrap JS -->
   <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
   <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
-  <script src="{% static 'scripts/script.js' %}"></script>
   <script>
     function ejecutarScript(scriptName) {
       let log = document.getElementById('execution-log');
-      // Mostrar mensaje de ejecución
       let executingMessage = document.createElement('p');
       executingMessage.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Ejecutando script: ' + scriptName;
       executingMessage.setAttribute("id", "executingMessage");
@@ -87,12 +86,8 @@
       })
       .then(response => response.json())
       .then(data => {
-        // Eliminar el mensaje "Ejecutando"
         let executingElement = document.getElementById("executingMessage");
-        if (executingElement) {
-          executingElement.remove();
-        }
-        // Mostrar la respuesta en el log
+        if (executingElement) { executingElement.remove(); }
         let outputMessage = document.createElement('p');
         outputMessage.innerHTML = '<i class="fas fa-check-circle"></i> ' + data.mensaje;
         log.appendChild(outputMessage);
@@ -100,9 +95,7 @@
       })
       .catch(error => {
         let executingElement = document.getElementById("executingMessage");
-        if (executingElement) {
-          executingElement.remove();
-        }
+        if (executingElement) { executingElement.remove(); }
         let errorMessage = document.createElement('p');
         errorMessage.innerHTML = '<i class="fas fa-times-circle"></i> Error en la ejecución.';
         log.appendChild(errorMessage);

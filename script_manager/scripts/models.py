@@ -30,10 +30,36 @@ class Ejecucion(models.Model):
 from django.db import models
 
 class ExecutionRecord(models.Model):
+    SCRIPT_TYPE_CHOICES = (
+        ('manual', 'Manual'),
+        ('programado', 'Programado'),
+    )
     script_name = models.CharField(max_length=255)
     execution_date = models.DateTimeField(auto_now_add=True)
     return_code = models.IntegerField()
     output = models.TextField(blank=True, null=True)
+    duration = models.FloatField(null=True, blank=True)  # Duración en segundos
+    tipo = models.CharField(max_length=20, choices=SCRIPT_TYPE_CHOICES, default='manual')
 
     def __str__(self):
-        return f"{self.script_name} - {self.execution_date}"
+        return f"{self.script_name} - {self.execution_date} - {self.tipo}"
+    
+
+# scripts/models.py
+from django.db import models
+
+
+class ExecutionRecord(models.Model):
+    SCRIPT_TYPE_CHOICES = (
+        ('manual', 'Manual'),
+        ('programado', 'Programado'),
+    )
+    script_name = models.CharField(max_length=255)
+    execution_date = models.DateTimeField(auto_now_add=True)
+    return_code = models.IntegerField()
+    output = models.TextField(blank=True, null=True)
+    duration = models.FloatField(null=True, blank=True)  # Duración en segundos
+    tipo = models.CharField(max_length=20, choices=SCRIPT_TYPE_CHOICES, default='manual')
+
+    def __str__(self):
+        return f"{self.script_name} - {self.execution_date} - {self.tipo}"
