@@ -1,0 +1,110 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <!-- UTF-8 para caracteres especiales -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard de Ejecuciones</title>
+  <!-- Bootstrap CSS -->
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- FontAwesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+  <link rel="stylesheet" href="{% static 'scripts/style.css' %}">
+</head>
+<body>
+  <div class="container">
+    <h1 class="mt-4 mb-4 text-center">Dashboard de Ejecuciones</h1>
+    <div class="row">
+      <!-- Tarjetas KPI -->
+      <div class="col-md-3">
+        <div class="card text-white bg-primary mb-3">
+          <div class="card-header">Total Ejecuciones</div>
+          <div class="card-body">
+            <h5 class="card-title">{{ total_executions }}</h5>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="card text-white bg-success mb-3">
+          <div class="card-header">Manuales</div>
+          <div class="card-body">
+            <h5 class="card-title">{{ manual_count }}</h5>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="card text-white bg-warning mb-3">
+          <div class="card-header">Programadas</div>
+          <div class="card-body">
+            <h5 class="card-title">{{ programado_count }}</h5>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="card text-white bg-info mb-3">
+          <div class="card-header">Duración Promedio (s)</div>
+          <div class="card-body">
+            <h5 class="card-title">{{ avg_duration }}</h5>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- Gráfico de Ejecuciones Diarias -->
+    <div class="row">
+      <div class="col-md-12">
+        <canvas id="executionsChart"></canvas>
+      </div>
+    </div>
+    <!-- Enlace de navegación -->
+    <div class="text-right mt-3">
+      <a href="{% url 'lista_scripts' %}" class="btn btn-secondary">
+        <i class="fas fa-arrow-left"></i> Volver
+      </a>
+    </div>
+  </div>
+  
+  <!-- jQuery y Bootstrap JS -->
+  <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
+  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+  
+  <script>
+    // Obtener datos del gráfico desde la vista dashboard_data
+    fetch("{% url 'dashboard_data' %}")
+      .then(response => response.json())
+      .then(data => {
+        const labels = data.map(item => item.date);
+        const counts = data.map(item => item.count);
+        const ctx = document.getElementById('executionsChart').getContext('2d');
+        new Chart(ctx, {
+          type: 'line',
+          data: {
+            labels: labels,
+            datasets: [{
+              label: 'Ejecuciones Diarias',
+              data: counts,
+              backgroundColor: 'rgba(54, 162, 235, 0.2)',
+              borderColor: 'rgba(54, 162, 235, 1)',
+              borderWidth: 2,
+              fill: true,
+            }]
+          },
+          options: {
+            scales: {
+              y: {
+                beginAtZero: true,
+                ticks: {
+                  precision: 0
+                }
+              }
+            }
+          }
+        });
+      })
+      .catch(error => console.error("Error al obtener datos del gráfico:", error));
+  </script>
+</body>
+</html>

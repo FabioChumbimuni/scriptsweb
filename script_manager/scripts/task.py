@@ -1,4 +1,5 @@
 # scripts/tasks.py
+
 import os
 import subprocess
 import time
@@ -9,7 +10,7 @@ from .models import ExecutionRecord
 @shared_task
 def execute_script_task(script_name):
     """
-    Tarea que ejecuta el script, mide su tiempo y guarda un registro con tipo 'programado'.
+    Ejecuta el script, mide su duración y guarda el registro con tipo 'programado'.
     """
     scripts_dir = os.path.join(settings.BASE_DIR, "script_manager", "scripts_files")
     file_path = os.path.join(scripts_dir, script_name)
@@ -18,7 +19,7 @@ def execute_script_task(script_name):
         start_time = time.time()
         result = subprocess.run(['bash', file_path], capture_output=True, text=True)
         duration = time.time() - start_time
-        # Guardar el registro como programado
+        # Guardar el registro con tipo 'programado'
         ExecutionRecord.objects.create(
             script_name=script_name,
             return_code=result.returncode,

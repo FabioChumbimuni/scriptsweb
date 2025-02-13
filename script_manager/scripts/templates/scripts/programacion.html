@@ -3,21 +3,53 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
+  <!-- UTF-8 para caracteres especiales -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Programación de Scripts</title>
-  <!-- Bootstrap CSS y FontAwesome -->
+  <!-- Bootstrap CSS -->
   <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+  <!-- FontAwesome -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
   <link rel="stylesheet" href="{% static 'scripts/style.css' %}">
 </head>
 <body>
   <div class="container">
     <h1 class="mt-4 mb-4 text-center">Programación de Scripts</h1>
+    
+    <!-- Formulario para programar una nueva tarea continua -->
+    <div class="mb-4">
+      <h3>Programar Nueva Tarea Continua</h3>
+      <form id="nueva-programacion-form" onsubmit="programarNueva(event);">
+        <div class="form-row align-items-end">
+          <div class="col">
+            <label for="scriptSelect">Script</label>
+            <select id="scriptSelect" class="form-control" required>
+              {% for script in available_scripts %}
+                <option value="{{ script }}">{{ script }}</option>
+              {% empty %}
+                <option value="">No hay scripts disponibles</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col">
+            <label for="intervaloInput">Intervalo (minutos)</label>
+            <input type="number" id="intervaloInput" class="form-control" min="1" value="60" required>
+          </div>
+          <div class="col">
+            <button type="submit" class="btn btn-primary">
+              <i class="fas fa-clock"></i> Programar Continua
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
+    
+    <!-- Tabla de Tareas Programadas -->
     <table class="table table-bordered">
       <thead class="thead-dark">
         <tr>
           <th>Script</th>
-          <th>Hora Programada</th>
+          <th>Intervalo Programado</th>
           <th>Última Ejecución</th>
           <th>Acción</th>
         </tr>
@@ -27,20 +59,22 @@
         <tr>
           <td>{{ task.name|cut:"cron_" }}</td>
           <td>
-            {% if task.crontab %}
-              {{ task.crontab.hour }}:{{ task.crontab.minute }}
+            {% if task.interval %}
+              {{ task.interval.every }} {{ task.interval.get_period_display }}
             {% else %}
               -
             {% endif %}
           </td>
           <td>{{ task.last_run_at|default:"-" }}</td>
           <td>
-            <form method="post" onsubmit="desactivarProgramacion('{{ task.name|cut:"cron_"|escapejs }}'); return false;">
-              {% csrf_token %}
-              <button type="submit" class="btn btn-danger btn-sm">
-                <i class="fas fa-trash"></i> Desactivar
-              </button>
-            </form>
+            {% with script_name=task.name|cut:"cron_"|escapejs %}
+              <form method="post" onsubmit="desactivarProgramacion('{{ script_name }}'); return false;">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-danger btn-sm">
+                  <i class="fas fa-trash"></i> Desactivar
+                </button>
+              </form>
+            {% endwith %}
           </td>
         </tr>
         {% empty %}
@@ -50,17 +84,46 @@
         {% endfor %}
       </tbody>
     </table>
+    
     <div class="text-right mt-3">
       <a href="{% url 'lista_scripts' %}" class="btn btn-secondary">
         <i class="fas fa-arrow-left"></i> Volver
       </a>
     </div>
   </div>
+  
   <!-- jQuery y Bootstrap JS -->
   <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
   <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+  
   <script>
+    function programarNueva(event) {
+      event.preventDefault();
+      let scriptSelect = document.getElementById('scriptSelect');
+      let intervaloInput = document.getElementById('intervaloInput');
+      let scriptName = scriptSelect.value;
+      let intervalo = intervaloInput.value;
+      if (!scriptName || !intervalo) {
+        alert("Por favor seleccione un script y defina el intervalo.");
+        return;
+      }
+      fetch(`/programar_auto/${scriptName}/`, {
+        method: "POST",
+        headers: {
+          "X-CSRFToken": "{{ csrf_token }}",
+          "Content-Type": "application/x-www-form-urlencoded"
+        },
+        body: new URLSearchParams({ 'intervalo': intervalo })
+      })
+      .then(response => response.json())
+      .then(data => {
+        alert(data.mensaje);
+        location.reload();
+      })
+      .catch(error => console.error("Error:", error));
+    }
+    
     function desactivarProgramacion(scriptName) {
       if (!confirm("¿Está seguro de desactivar la programación para " + scriptName + "?")) return;
       fetch(`/desactivar_programacion/${scriptName}/`, {

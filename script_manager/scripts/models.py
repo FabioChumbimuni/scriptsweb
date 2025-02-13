@@ -46,8 +46,9 @@ class ExecutionRecord(models.Model):
     
 
 # scripts/models.py
-from django.db import models
+# scripts/models.py
 
+from django.db import models
 
 class ExecutionRecord(models.Model):
     SCRIPT_TYPE_CHOICES = (

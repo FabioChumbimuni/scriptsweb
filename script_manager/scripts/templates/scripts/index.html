@@ -3,12 +3,14 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
+  <!-- UTF-8 asegura la correcta visualización de caracteres especiales -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Gestión de Scripts</title>
-  <!-- Bootstrap CSS -->
+  <title>Gestión de Scripts - Principal</title>
+  <!-- Bootstrap CSS vía CDN -->
   <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
-  <!-- FontAwesome -->
+  <!-- FontAwesome para íconos -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+  <!-- CSS propio, si lo tienes -->
   <link rel="stylesheet" href="{% static 'scripts/style.css' %}">
 </head>
 <body>
@@ -21,7 +23,7 @@
           <thead class="thead-dark">
             <tr>
               <th>Nombre</th>
-              <th>Acciones</th>
+              <th>Acción</th>
             </tr>
           </thead>
           <tbody>
@@ -42,7 +44,7 @@
             {% endfor %}
           </tbody>
         </table>
-        <!-- Enlaces para ver Historial y Programación -->
+        <!-- Enlaces de navegación -->
         <div class="text-right mt-3">
           <a href="{% url 'historial_ejecuciones' %}" class="btn btn-secondary">
             <i class="fas fa-history"></i> Ver Historial
@@ -53,7 +55,7 @@
         </div>
       </div>
     </div>
-    <!-- Sección de monitoreo efímero -->
+    <!-- Área de monitoreo para mostrar los resultados de la ejecución -->
     <div class="row mt-4">
       <div class="col-md-12">
         <h2>Monitoreo</h2>
@@ -63,8 +65,12 @@
       </div>
     </div>
   </div>
-  
-  <!-- jQuery y Bootstrap JS -->
+  <div class="text-right mt-3">
+    <a href="{% url 'dashboard' %}" class="btn btn-info">
+      <i class="fas fa-tachometer-alt"></i> Ver Dashboard
+    </a>
+  </div>
+  <!-- jQuery y Bootstrap JS vía CDN -->
   <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
   <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
@@ -76,7 +82,7 @@
       executingMessage.setAttribute("id", "executingMessage");
       log.appendChild(executingMessage);
       log.scrollTop = log.scrollHeight;
-
+      
       fetch(`/ejecutar/${scriptName}/`, {
         method: "POST",
         headers: {

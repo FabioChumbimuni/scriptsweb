@@ -1,4 +1,3 @@
-# scripts/urls.py
 from django.urls import path
 from . import views
 
@@ -10,5 +9,7 @@ urlpatterns = [
     path("ver_programacion/", views.ver_programacion, name="ver_programacion"),
     path("historial/", views.historial_ejecuciones, name="historial_ejecuciones"),
     path("borrar_historial_por_fecha/", views.borrar_historial_por_fecha, name="borrar_historial_por_fecha"),
-    path("historial/", views.historial_ejecuciones, name="historial_ejecuciones"),
+    path("exportar_historial/", views.exportar_historial, name="exportar_historial"),
+    path("dashboard/", views.dashboard, name="dashboard"),
+    path("dashboard_data/", views.dashboard_data, name="dashboard_data"),
 ]

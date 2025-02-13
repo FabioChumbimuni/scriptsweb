@@ -4,14 +4,19 @@ import subprocess
 import time
 import json
 from django.conf import settings
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from django.shortcuts import render, redirect
-from django_celery_beat.models import PeriodicTask, CrontabSchedule
+from django_celery_beat.models import PeriodicTask, CrontabSchedule, IntervalSchedule
 from .models import ExecutionRecord
 from django.views.decorators.http import require_POST
 from django.contrib import messages
 from datetime import datetime
 from django.core.paginator import Paginator
+from django.db.models import Count, Avg
+from django.utils import timezone
+from datetime import timedelta
+import csv
+from django.shortcuts import render
 
 
 def lista_scripts(request):
@@ -66,42 +71,39 @@ def ejecutar_script(request, script_name):
 @require_POST
 def programar_auto(request, script_name):
     """
-    Programa la ejecución automática del script a una hora específica.
-    Se espera recibir un campo 'hora' en formato HH:MM.
-    Se crea o actualiza una tarea periódica usando CrontabSchedule.
+    Programa la ejecución automática continua del script usando un intervalo en minutos.
+    Se espera recibir un campo 'intervalo' en minutos (valor entero). Si no se proporciona, se usará 60.
     """
-    hora = request.POST.get("hora")
-    if not hora:
-        return JsonResponse({"mensaje": "No se proporcionó hora."}, status=400)
+    intervalo = request.POST.get("intervalo")
     try:
-        hour_str, minute_str = hora.split(":")
-        hour = int(hour_str)
-        minute = int(minute_str)
-        schedule, created = CrontabSchedule.objects.get_or_create(
-            minute=str(minute),
-            hour=str(hour),
-            day_of_week="*",
-            day_of_month="*",
-            month_of_year="*",
+        intervalo = int(intervalo) if intervalo else 60
+    except ValueError:
+        return JsonResponse({"mensaje": "Intervalo inválido."}, status=400)
+    try:
+        schedule, created = IntervalSchedule.objects.get_or_create(
+            every=intervalo,
+            period=IntervalSchedule.MINUTES,
         )
         task_name = f"cron_{script_name}"
         periodic_task = PeriodicTask.objects.filter(name=task_name).first()
         if periodic_task:
-            periodic_task.crontab = schedule
+            periodic_task.interval = schedule
             periodic_task.save()
-            mensaje = f"Programación actualizada para {script_name} a las {hora}."
+            mensaje = f"Programación actualizada para {script_name} con intervalo de {intervalo} minutos."
         else:
             periodic_task = PeriodicTask.objects.create(
-                crontab=schedule,
+                interval=schedule,
                 name=task_name,
                 task="scripts.tasks.execute_script_task",
                 args=json.dumps([script_name]),
                 one_off=False,
             )
-            mensaje = f"Ejecución automática programada para {script_name} a las {hora}."
+            mensaje = f"Ejecución automática programada para {script_name} con intervalo de {intervalo} minutos."
         return JsonResponse({"mensaje": mensaje})
     except Exception as e:
         return JsonResponse({"mensaje": f"Error al programar: {str(e)}"}, status=500)
+
+
 
 @require_POST
 def desactivar_programacion(request, script_name):
@@ -118,11 +120,25 @@ def desactivar_programacion(request, script_name):
     return JsonResponse({"mensaje": mensaje})
 
 def ver_programacion(request):
-    """
-    Muestra la lista de tareas periódicas creadas para los scripts (con nombre que comienzan con 'cron_').
-    """
+    # Obtener las tareas programadas existentes
     tasks = PeriodicTask.objects.filter(name__startswith="cron_").order_by("name")
-    return render(request, "scripts/programacion.html", {"tasks": tasks})
+    
+    # Definir el directorio donde se encuentran los scripts
+    scripts_dir = os.path.join(settings.BASE_DIR, "script_manager", "scripts_files")
+    available_scripts = []
+    if os.path.exists(scripts_dir):
+        for filename in os.listdir(scripts_dir):
+            if filename.endswith(".sh"):
+                available_scripts.append(filename)
+    else:
+        print("El directorio de scripts no existe:", scripts_dir)
+    
+    context = {
+        'tasks': tasks,
+        'available_scripts': available_scripts,
+    }
+    return render(request, "scripts/programacion.html", context)
+
 
 def historial_ejecuciones(request):
     """
@@ -170,8 +186,6 @@ def ejecutar_script(request, script_name):
         return JsonResponse({"mensaje": "Script no encontrado."}, status=404)
 
 
-
-
 def historial_ejecuciones(request):
     """
     Muestra el historial de ejecuciones de scripts con paginación.
@@ -211,3 +225,61 @@ def borrar_historial_por_fecha(request):
         return JsonResponse({"mensaje": f"Se han borrado {deleted_count} registros entre {start_datetime} y {end_datetime}."})
     except Exception as e:
         return JsonResponse({"mensaje": f"Error al borrar registros: {str(e)}"}, status=500)
+
+def dashboard(request):
+    """
+    Renderiza la página del dashboard con indicadores y gráficos.
+    """
+    total_executions = ExecutionRecord.objects.count()
+    manual_count = ExecutionRecord.objects.filter(tipo='manual').count()
+    programado_count = ExecutionRecord.objects.filter(tipo='programado').count()
+    avg_duration = ExecutionRecord.objects.aggregate(avg=Avg('duration'))['avg'] or 0
+
+    context = {
+        'total_executions': total_executions,
+        'manual_count': manual_count,
+        'programado_count': programado_count,
+        'avg_duration': round(avg_duration, 2),
+    }
+    return render(request, "scripts/dashboard.html", context)
+
+def dashboard_data(request):
+    """
+    Devuelve datos en formato JSON para el gráfico de ejecuciones diarias de los últimos 7 días.
+    """
+    now = timezone.now()
+    data = []
+    for i in range(7):
+        day = now - timedelta(days=i)
+        count = ExecutionRecord.objects.filter(execution_date__date=day.date()).count()
+        data.append({
+            'date': day.strftime('%Y-%m-%d'),
+            'count': count,
+        })
+    data.reverse()  # Para que las fechas vayan de la más antigua a la más reciente
+    return JsonResponse(data, safe=False)
+
+def exportar_historial(request):
+    """
+    Exporta todo el historial de ejecuciones a un archivo CSV.
+    """
+    registros = ExecutionRecord.objects.order_by("-execution_date")
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = 'attachment; filename="historial_ejecuciones.csv"'
+    
+    writer = csv.writer(response)
+    # Escribir la cabecera
+    writer.writerow(['Script', 'Fecha de Ejecución', 'Código', 'Duración (s)', 'Salida', 'Tipo'])
+    
+    # Escribir cada registro
+    for registro in registros:
+        writer.writerow([
+            registro.script_name,
+            registro.execution_date,
+            registro.return_code,
+            registro.duration,
+            registro.output,
+            registro.tipo
+        ])
+    
+    return response
